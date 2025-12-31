@@ -132,6 +132,48 @@ export default function Products() {
     // Não é mais necessário resetar a página aqui, o useQuery cuidará disso
   }, [search, categoryFilter]);
 
+  // Listener para atalhos gerais
+  useEffect(() => {
+    const handleAppShortcut = (event) => {
+      const { action, currentPath } = event.detail;
+      
+      // Só processar se estivermos na página de produtos
+      if (currentPath !== '/products') return;
+      
+      switch (action) {
+        case 'new':
+          setIsFormOpen(true);
+          setEditingProduct(null);
+          break;
+          
+        case 'search':
+          // Focar no campo de busca
+          const searchInput = document.querySelector('[data-products-search]');
+          if (searchInput) {
+            searchInput.focus();
+            searchInput.select();
+          }
+          break;
+          
+        case 'escape':
+          if (isFormOpen) {
+            setIsFormOpen(false);
+            setEditingProduct(null);
+          }
+          break;
+          
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('app-shortcut', handleAppShortcut);
+    
+    return () => {
+      window.removeEventListener('app-shortcut', handleAppShortcut);
+    };
+  }, [isFormOpen]);
+
   const getUnitIcon = (unitType) => {
     if (unitType === "kg" || unitType === "grama") return <Scale className="w-4 h-4" />;
     if (unitType === "litro" || unitType === "ml") return <Droplet className="w-4 h-4" />;
@@ -160,6 +202,7 @@ export default function Products() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
           <Input
+            data-products-search
             placeholder="Buscar por nome, código de barras ou SKU..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}

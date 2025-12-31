@@ -18,6 +18,7 @@ import { api as base44 } from "@/api/supabaseService";
 import nexusLogo from "@/assets/nexuslogo.jpg";
 import { SimpleUserMenu } from "@/components/auth/SimpleUserMenu";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import { KeyboardShortcutsHelp } from "@/components/ui/keyboard-shortcuts-help";
 
 const menuItems = [
   { 
@@ -171,6 +172,15 @@ export function Sidebar({ isOpen, onToggle }) {
         {/* User Profile and Logout */}
         <div className="p-3 sm:p-4 border-t border-[#2D6A4F]/30 space-y-3">
           <SimpleUserMenu />
+          
+          {/* Keyboard Shortcuts Help */}
+          <KeyboardShortcutsHelp 
+            trigger={
+              <button className="w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all duration-200 text-white/80 hover:bg-[#2D6A4F]/50 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#1B4332]">
+                <span className="text-sm sm:text-base">⌨️ Atalhos</span>
+              </button>
+            }
+          />
           
           {/* Logout Button */}
           <LogoutButton 

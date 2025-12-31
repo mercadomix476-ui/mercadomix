@@ -67,6 +67,85 @@ export default function PDV() {
     checkPrinterConnection();
   }, []);
 
+  // Listener para atalhos específicos do PDV
+  useEffect(() => {
+    const handlePDVShortcut = (event) => {
+      const { action } = event.detail;
+      
+      switch (action) {
+        case 'help':
+          toast.info('Atalhos do PDV', {
+            description: (
+              <div className="text-sm space-y-1">
+                <div>F2: Buscar Produto</div>
+                <div>F3: Finalizar Venda</div>
+                <div>F4: Cancelar Venda</div>
+                <div>F9: Aplicar Desconto</div>
+                <div>F12: Abrir Gaveta</div>
+              </div>
+            ),
+            duration: 5000
+          });
+          break;
+          
+        case 'search':
+          // Focar no campo de busca de produtos
+          const searchInput = document.querySelector('[data-search-input]');
+          if (searchInput) {
+            searchInput.focus();
+          }
+          break;
+          
+        case 'payment':
+          if (cart.length > 0) {
+            handleFinalizeSale();
+          } else {
+            toast.warning('Adicione produtos ao carrinho antes de finalizar a venda');
+          }
+          break;
+          
+        case 'cancel':
+          if (cart.length > 0) {
+            handleClearCart();
+            toast.success('Venda cancelada');
+          }
+          break;
+          
+        case 'refresh':
+          window.location.reload();
+          break;
+          
+        case 'discount':
+          // Focar no campo de desconto
+          const discountInput = document.querySelector('[data-discount-input]');
+          if (discountInput) {
+            discountInput.focus();
+            discountInput.select();
+          }
+          break;
+          
+        case 'drawer':
+          // Abrir gaveta (se impressora conectada)
+          if (isPrinterConnected) {
+            escposService.openDrawer();
+            toast.success('Gaveta aberta');
+          } else {
+            toast.warning('Impressora não conectada');
+          }
+          break;
+          
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('pdv-shortcut', handlePDVShortcut);
+    
+    return () => {
+      window.removeEventListener('pdv-shortcut', handlePDVShortcut);
+    };
+  }, [cart, isPrinterConnected]);
+
   const { data: settings } = useQuery({
     queryKey: ["settings"],
     queryFn: async () => {
@@ -373,6 +452,7 @@ export default function PDV() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-600">💰 Desconto <span className="hidden sm:inline">(F4)</span></label>
               <Input
+                data-discount-input
                 type="number"
                 placeholder="R$ 0,00"
                 value={discount || ""}

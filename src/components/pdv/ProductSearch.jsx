@@ -65,6 +65,7 @@ export default function ProductSearch({ onAddProduct, searchQuery, setSearchQuer
         <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" aria-hidden="true" />
         <Input
           ref={inputRef}
+          data-search-input
           placeholder="Buscar produto por nome, código de barras ou SKU (F2)..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}

@@ -1,0 +1,79 @@
+{
+  "name": "Product",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome do produto"
+    },
+    "barcode": {
+      "type": "string",
+      "description": "C\u00f3digo de barras"
+    },
+    "sku": {
+      "type": "string",
+      "description": "C\u00f3digo interno SKU"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Hortifruti",
+        "A\u00e7ougue",
+        "Padaria",
+        "Latic\u00ednios",
+        "Bebidas",
+        "Mercearia",
+        "Limpeza",
+        "Higiene",
+        "Frios",
+        "Congelados",
+        "Pet",
+        "Outros"
+      ],
+      "description": "Categoria do produto"
+    },
+    "unit_type": {
+      "type": "string",
+      "enum": [
+        "unidade",
+        "kg",
+        "litro",
+        "grama",
+        "ml"
+      ],
+      "default": "unidade",
+      "description": "Tipo de unidade de venda"
+    },
+    "cost_price": {
+      "type": "number",
+      "description": "Pre\u00e7o de custo"
+    },
+    "sale_price": {
+      "type": "number",
+      "description": "Pre\u00e7o de venda"
+    },
+    "stock_quantity": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantidade em estoque"
+    },
+    "min_stock": {
+      "type": "number",
+      "default": 5,
+      "description": "Estoque m\u00ednimo para alerta"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Produto ativo"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL da imagem do produto"
+    }
+  },
+  "required": [
+    "name",
+    "sale_price"
+  ]
+}

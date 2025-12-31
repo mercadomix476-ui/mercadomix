@@ -1,0 +1,51 @@
+{
+  "name": "StoreSettings",
+  "type": "object",
+  "properties": {
+    "store_name": {
+      "type": "string",
+      "default": "Nexus Commerce"
+    },
+    "cnpj": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "printer_name": {
+      "type": "string",
+      "description": "Nome da impressora ESC/POS"
+    },
+    "printer_width": {
+      "type": "number",
+      "default": 48,
+      "description": "Largura da impressora em caracteres"
+    },
+    "auto_print": {
+      "type": "boolean",
+      "default": true,
+      "description": "Imprimir automaticamente ap\u00f3s venda"
+    },
+    "logo_url": {
+      "type": "string"
+    },
+    "alert_email": {
+      "type": "string",
+      "description": "Email para receber alertas de estoque"
+    },
+    "enable_stock_alerts": {
+      "type": "boolean",
+      "default": true,
+      "description": "Habilitar alertas de estoque baixo"
+    },
+    "alert_threshold": {
+      "type": "number",
+      "default": 50,
+      "description": "Percentual do estoque m\u00ednimo para enviar alerta"
+    }
+  },
+  "required": []
+}

@@ -1,0 +1,47 @@
+{
+  "name": "StockAlert",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "description": "ID do produto"
+    },
+    "product_name": {
+      "type": "string",
+      "description": "Nome do produto"
+    },
+    "current_stock": {
+      "type": "number",
+      "description": "Estoque atual"
+    },
+    "min_stock": {
+      "type": "number",
+      "description": "Estoque m\u00ednimo"
+    },
+    "suggested_order": {
+      "type": "number",
+      "description": "Quantidade sugerida para pedido"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "ordered",
+        "resolved"
+      ],
+      "default": "pending",
+      "description": "Status do alerta"
+    },
+    "notified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se notifica\u00e7\u00e3o foi enviada"
+    }
+  },
+  "required": [
+    "product_id",
+    "product_name",
+    "current_stock",
+    "min_stock"
+  ]
+}

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Limpar Cache</title>
+</head>
+<body>
+    <h1>Limpando Cache...</h1>
+    <script>
+        // Limpar localStorage
+        localStorage.clear();
+        
+        // Limpar sessionStorage
+        sessionStorage.clear();
+        
+        // Recarregar página
+        setTimeout(() => {
+            window.location.href = 'http://localhost:5173';
+        }, 1000);
+    </script>
+</body>
+</html>

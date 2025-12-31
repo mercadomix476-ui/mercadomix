@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Usuário Admin</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Usuário Admin</h1>
+        
+        <div class="section">
+            <h3>1. Configuração do Supabase</h3>
+            <button onclick="testSupabaseConnection()">Testar Conexão</button>
+            <div id="supabase-result"></div>
+        </div>
+
+        <div class="section">
+            <h3>2. Usuário Atual</h3>
+            <button onclick="getCurrentUser()">Verificar Usuário Logado</button>
+            <div id="user-result"></div>
+        </div>
+
+        <div class="section">
+            <h3>3. Tabela Profiles</h3>
+            <button onclick="checkProfilesTable()">Verificar Tabela Profiles</button>
+            <div id="profiles-result"></div>
+        </div>
+
+        <div class="section">
+            <h3>4. Perfil do Usuário</h3>
+            <button onclick="getUserProfile()">Buscar Perfil</button>
+            <div id="profile-result"></div>
+        </div>
+
+        <div class="section">
+            <h3>5. Limpar Cache</h3>
+            <button onclick="clearCache()">Limpar LocalStorage</button>
+            <button onclick="forceReload()">Recarregar Página</button>
+            <div id="cache-result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuração do Supabase
+        const SUPABASE_URL = 'https://dmzgcsolxkizehlbiepz.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtemdjc29seGtpemVobGJpZXB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxNDg4NzMsImV4cCI6MjA4MjcyNDg3M30.csk6UnaEnhLIDHRod9LNAcSEzuWvReCbXusfOCR6IpM';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function showResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type}"><pre>${content}</pre></div>`;
+        }
+
+        async function testSupabaseConnection() {
+            try {
+                const { data, error } = await supabase.from('products').select('count').limit(1);
+                if (error) throw error;
+                showResult('supabase-result', '✅ Conexão com Supabase OK', 'success');
+            } catch (error) {
+                showResult('supabase-result', `❌ Erro na conexão: ${error.message}`, 'error');
+            }
+        }
+
+        async function getCurrentUser() {
+            try {
+                const { data: { user }, error } = await supabase.auth.getUser();
+                if (error) throw error;
+                
+                if (user) {
+                    const userInfo = {
+                        id: user.id,
+                        email: user.email,
+                        created_at: user.created_at,
+                        user_metadata: user.user_metadata
+                    };
+                    showResult('user-result', `✅ Usuário logado:\n${JSON.stringify(userInfo, null, 2)}`, 'success');
+                } else {
+                    showResult('user-result', '❌ Nenhum usuário logado', 'error');
+                }
+            } catch (error) {
+                showResult('user-result', `❌ Erro ao buscar usuário: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkProfilesTable() {
+            try {
+                const { data, error } = await supabase.from('profiles').select('*').limit(5);
+                if (error) throw error;
+                
+                showResult('profiles-result', `✅ Tabela profiles existe. ${data.length} registros encontrados:\n${JSON.stringify(data, null, 2)}`, 'success');
+            } catch (error) {
+                showResult('profiles-result', `❌ Erro na tabela profiles: ${error.message}`, 'error');
+            }
+        }
+
+        async function getUserProfile() {
+            try {
+                const { data: { user }, error: userError } = await supabase.auth.getUser();
+                if (userError) throw userError;
+                
+                if (!user) {
+                    showResult('profile-result', '❌ Usuário não logado', 'error');
+                    return;
+                }
+
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profileError) {
+                    if (profileError.code === 'PGRST116') {
+                        showResult('profile-result', `❌ Perfil não encontrado para o usuário ${user.email}.\n\nCrie o perfil executando:\n\nINSERT INTO profiles (id, email, full_name, role, is_active)\nVALUES (\n  '${user.id}',\n  '${user.email}',\n  'Administrador',\n  'admin',\n  true\n);`, 'error');
+                    } else {
+                        throw profileError;
+                    }
+                } else {
+                    showResult('profile-result', `✅ Perfil encontrado:\n${JSON.stringify(profile, null, 2)}`, 'success');
+                }
+            } catch (error) {
+                showResult('profile-result', `❌ Erro ao buscar perfil: ${error.message}`, 'error');
+            }
+        }
+
+        function clearCache() {
+            localStorage.removeItem('auth_user');
+            localStorage.removeItem('auth_expiry');
+            showResult('cache-result', '✅ Cache limpo! Faça login novamente.', 'success');
+        }
+
+        function forceReload() {
+            window.location.reload();
+        }
+
+        // Executar testes automaticamente
+        window.onload = function() {
+            setTimeout(() => {
+                testSupabaseConnection();
+                getCurrentUser();
+                checkProfilesTable();
+                getUserProfile();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

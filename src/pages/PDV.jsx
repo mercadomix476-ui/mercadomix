@@ -12,7 +12,8 @@ import {
   ShoppingCart,
   Package,
   User,
-  LogOut
+  LogOut,
+  WifiOff
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,11 +26,12 @@ import { toast } from "sonner";
 import { CheckCircle, Printer } from "lucide-react";
 import { escposService } from "@/api/escposService";
 import { printReceipt, printReceiptBrowser } from "@/components/pdv/ReceiptPrinter";
+import offlinePDVService from "@/services/offlinePDVService";
 
 export default function PDV() {
   const { user, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isPrinterConnected, setIsPrinterConnected] = useState(false); // State to track printer connection
+  const [isPrinterConnected, setIsPrinterConnected] = useState(false);
   const [cart, setCart] = useState([]);
   const [discount, setDiscount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -37,6 +39,7 @@ export default function PDV() {
   const [amountPaid, setAmountPaid] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastSale, setLastSale] = useState(null);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const queryClient = useQueryClient();
 
   const handleLogout = async () => {
@@ -65,6 +68,33 @@ export default function PDV() {
     };
 
     checkPrinterConnection();
+  }, []);
+
+  // Inicializar serviço offline e monitorar conexão
+  useEffect(() => {
+    // Inicializar banco offline
+    offlinePDVService.init().then(() => {
+      console.log('Serviço offline inicializado');
+    });
+
+    // Monitorar status de conexão
+    const handleOnline = () => {
+      setIsOffline(false);
+      toast.success('Conexão restaurada! PDV funcionando online.');
+    };
+
+    const handleOffline = () => {
+      setIsOffline(true);
+      toast.warning('Sem conexão. PDV funcionando offline.');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   // Listener para atalhos específicos do PDV
@@ -250,48 +280,58 @@ export default function PDV() {
         status: "completed",
       };
 
-      const createdSale = await createSaleMutation.mutateAsync(saleData);
-      setLastSale({ ...saleData, id: createdSale.id, created_date: new Date() });
+      let createdSale;
 
-      // Update stock and create movements
-      for (const item of cart) {
-        const { data: productData } = await queryClient.fetchQuery({
-          queryKey: ["product", item.product_id],
-          queryFn: () => base44.entities.Product.getById(item.product_id),
-        });
-
-        if (productData && productData.stock_quantity !== undefined) {
-          const newStock = Math.max(0, productData.stock_quantity - item.quantity);
-          await updateStockMutation.mutateAsync({
-            productId: item.product_id,
-            newStock,
-          });
-
-          // Register stock movement
-          try {
-            await base44.entities.StockMovement.create({
-              product_id: item.product_id,
-              product_name: item.product_name,
-              movement_type: "venda",
-              quantity: item.quantity,
-              previous_stock: productData.stock_quantity,
-              new_stock: newStock,
-              reason: "Venda via PDV",
-              reference: saleData.sale_number,
+      // Verificar se está offline
+      if (isOffline || !navigator.onLine) {
+        // Salvar venda offline
+        createdSale = await offlinePDVService.saveOfflineSale(saleData);
+        toast.success('Venda salva offline! Será sincronizada quando voltar online.');
+      } else {
+        // Tentar salvar online
+        try {
+          createdSale = await createSaleMutation.mutateAsync(saleData);
+          
+          // Update stock and create movements
+          for (const item of cart) {
+            const { data: productData } = await queryClient.fetchQuery({
+              queryKey: ["product", item.product_id],
+              queryFn: () => base44.entities.Product.getById(item.product_id),
             });
-          } catch (err) {
-            console.warn("Erro ao registrar movimentação:", err);
+
+            if (productData && productData.stock_quantity !== undefined) {
+              const newStock = Math.max(0, productData.stock_quantity - item.quantity);
+              await updateStockMutation.mutateAsync({
+                productId: item.product_id,
+                newStock,
+              });
+            }
           }
+        } catch (error) {
+          console.error('Erro ao salvar online, salvando offline:', error);
+          // Se falhar online, salvar offline
+          createdSale = await offlinePDVService.saveOfflineSale(saleData);
+          toast.warning('Erro na conexão. Venda salva offline!');
         }
       }
 
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["stockMovements"] });
-      
+      setLastSale({ ...saleData, id: createdSale.id, created_date: new Date() });
+
+      // Print receipt if printer is connected
+      if (isPrinterConnected) {
+        try {
+          await printReceipt(lastSale, settings);
+          toast.success("Recibo impresso com sucesso!");
+        } catch (error) {
+          console.error("Erro ao imprimir:", error);
+          toast.error("Erro ao imprimir recibo");
+        }
+      }
+
       setShowSuccessModal(true);
     } catch (error) {
       console.error("Erro ao finalizar venda:", error);
-      alert("Erro ao finalizar venda");
+      toast.error("Erro ao finalizar venda. Tente novamente.");
     }
   };
 
@@ -350,6 +390,14 @@ export default function PDV() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+            {/* Indicador Offline */}
+            {isOffline && (
+              <div className="flex items-center gap-2 bg-orange-500/20 px-3 py-2 rounded-xl border border-orange-400/30">
+                <WifiOff className="w-4 h-4 text-orange-200" />
+                <span className="text-xs font-medium text-orange-200 hidden sm:inline">Offline</span>
+              </div>
+            )}
+            
             {user && (
               <div className="hidden sm:flex items-center gap-2 bg-white/10 px-3 sm:px-4 py-2 rounded-xl">
                 <User className="w-4 h-4 sm:w-5 sm:h-5" />

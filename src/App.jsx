@@ -19,6 +19,7 @@ import { FeedbackProvider } from "./components/FeedbackContainer";
 import { AuthProvider, PERMISSIONS, USER_ROLES } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useOfflineSync } from "./hooks/useOfflineSync";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,9 @@ const queryClient = new QueryClient();
 function AppContent() {
   // Inicializar atalhos de teclado
   useKeyboardShortcuts();
+  
+  // Inicializar funcionalidade offline
+  useOfflineSync();
 
   return (
     <>

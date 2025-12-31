@@ -142,7 +142,7 @@ export default function Products() {
       
       switch (action) {
         case 'new':
-          setIsFormOpen(true);
+          setShowForm(true);
           setEditingProduct(null);
           break;
           
@@ -156,8 +156,8 @@ export default function Products() {
           break;
           
         case 'escape':
-          if (isFormOpen) {
-            setIsFormOpen(false);
+          if (showForm) {
+            setShowForm(false);
             setEditingProduct(null);
           }
           break;
@@ -172,7 +172,7 @@ export default function Products() {
     return () => {
       window.removeEventListener('app-shortcut', handleAppShortcut);
     };
-  }, [isFormOpen]);
+  }, [showForm]);
 
   const getUnitIcon = (unitType) => {
     if (unitType === "kg" || unitType === "grama") return <Scale className="w-4 h-4" />;

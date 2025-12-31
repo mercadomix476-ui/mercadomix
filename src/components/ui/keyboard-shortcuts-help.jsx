@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from './button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog';
 import { Badge } from './badge';
 import { Keyboard, Navigation, Zap, HelpCircle } from 'lucide-react';
 
@@ -50,7 +50,7 @@ export function KeyboardShortcutsHelp({ trigger }) {
     <div className="flex items-center gap-1">
       {keys.map((key, index) => (
         <React.Fragment key={key}>
-          {index > 0 && <span className="text-xs text-muted-foreground">+</span>}
+          {index > 0 && <span className="text-xs text-slate-500">+</span>}
           <Badge variant="outline" className="px-2 py-1 text-xs font-mono">
             {key}
           </Badge>
@@ -60,56 +60,61 @@ export function KeyboardShortcutsHelp({ trigger }) {
   );
 
   const defaultTrigger = (
-    <Button variant="ghost" size="sm" className="gap-2">
+    <Button variant="ghost" size="sm" className="gap-2" onClick={() => setOpen(true)}>
       <HelpCircle className="w-4 h-4" />
       Atalhos
     </Button>
   );
 
+  const triggerElement = trigger ? (
+    React.cloneElement(trigger, { onClick: () => setOpen(true) })
+  ) : defaultTrigger;
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || defaultTrigger}
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Keyboard className="w-5 h-5" />
-            Atalhos de Teclado
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-6">
-          {shortcuts.map((category) => (
-            <div key={category.category} className="space-y-3">
-              <h3 className="flex items-center gap-2 text-lg font-semibold">
-                {category.icon}
-                {category.category}
-              </h3>
-              
-              <div className="grid gap-2">
-                {category.items.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <span className="text-sm">{item.description}</span>
-                    <KeyBadge keys={item.keys} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+    <>
+      {triggerElement}
+      
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Keyboard className="w-5 h-5" />
+              Atalhos de Teclado
+            </DialogTitle>
+          </DialogHeader>
           
-          <div className="pt-4 border-t">
-            <p className="text-sm text-muted-foreground">
-              💡 <strong>Dica:</strong> Os atalhos funcionam em qualquer lugar do aplicativo, 
-              exceto quando você estiver digitando em campos de texto.
-            </p>
+          <div className="space-y-6">
+            {shortcuts.map((category) => (
+              <div key={category.category} className="space-y-3">
+                <h3 className="flex items-center gap-2 text-lg font-semibold">
+                  {category.icon}
+                  {category.category}
+                </h3>
+                
+                <div className="grid gap-2">
+                  {category.items.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+                    >
+                      <span className="text-sm">{item.description}</span>
+                      <KeyBadge keys={item.keys} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            
+            <div className="pt-4 border-t">
+              <p className="text-sm text-slate-600">
+                💡 <strong>Dica:</strong> Os atalhos funcionam em qualquer lugar do aplicativo, 
+                exceto quando você estiver digitando em campos de texto.
+              </p>
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

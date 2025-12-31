@@ -65,36 +65,28 @@ export const useKeyboardShortcuts = () => {
 
   // Função para mostrar ajuda dos atalhos
   const showShortcutsHelp = useCallback(() => {
-    const helpText = Object.entries(shortcuts)
-      .map(([key, { description }]) => `${key}: ${description}`)
-      .join('\n');
-    
     toast.info('Atalhos de Teclado Disponíveis', {
-      description: (
-        <div className="text-sm space-y-1 max-h-60 overflow-y-auto">
-          <div className="font-semibold mb-2">Navegação:</div>
-          <div>Alt+1: Dashboard</div>
-          <div>Alt+2: PDV</div>
-          <div>Alt+3: Produtos</div>
-          <div>Alt+4: Vendas</div>
-          <div>Alt+5: Estoque</div>
-          <div>Alt+6: Relatórios</div>
-          <div>Alt+7: Configurações</div>
-          
-          <div className="font-semibold mt-3 mb-2">PDV:</div>
-          <div>F2: Buscar Produto</div>
-          <div>F3: Finalizar Venda</div>
-          <div>F4: Cancelar Venda</div>
-          <div>F9: Aplicar Desconto</div>
-          <div>F12: Abrir Gaveta</div>
-          
-          <div className="font-semibold mt-3 mb-2">Geral:</div>
-          <div>Ctrl+N: Novo Item</div>
-          <div>Ctrl+S: Salvar</div>
-          <div>Ctrl+F: Buscar</div>
-          <div>Escape: Cancelar/Fechar</div>
-        </div>
-      ),
+      description: `Navegação:
+Alt+1: Dashboard
+Alt+2: PDV  
+Alt+3: Produtos
+Alt+4: Vendas
+Alt+5: Estoque
+Alt+6: Relatórios
+Alt+7: Configurações
+
+PDV:
+F2: Buscar Produto
+F3: Finalizar Venda
+F4: Cancelar Venda
+F9: Aplicar Desconto
+F12: Abrir Gaveta
+
+Geral:
+Ctrl+N: Novo Item
+Ctrl+S: Salvar
+Ctrl+F: Buscar
+Escape: Cancelar/Fechar`,
       duration: 10000
     });
   }, []);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { api as base44 } from "@/api/supabaseService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   Settings as SettingsIcon,
   Store,
@@ -13,12 +14,15 @@ import {
   FileUp,
   AlertCircle,
   CheckCircle,
-  RefreshCw
+  RefreshCw,
+  Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import nexusLogo from "@/assets/nexuslogo.jpg";
+import { LogoDisplay } from "@/components/ui/LogoDisplay";
+import { LogoSettings } from "@/components/admin/LogoSettings";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -45,10 +49,26 @@ import { toast } from "sonner";
 
 export default function Settings() {
   const queryClient = useQueryClient();
+  const { canViewSettings, canEditSettings, isAdmin, canManageStore } = usePermissions();
   const [activeTab, setActiveTab] = useState("store");
   const [importFile, setImportFile] = useState(null);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [importType, setImportType] = useState("");
+
+  // Check if user has permission to view settings
+  if (!canViewSettings) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <Shield className="w-16 h-16 text-slate-400 mx-auto" />
+          <div>
+            <h2 className="text-xl font-semibold text-slate-700">Acesso Restrito</h2>
+            <p className="text-slate-500">Você não tem permissão para acessar as configurações.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const { data: settingsList = [] } = useQuery({
     queryKey: ["settings"],
@@ -764,6 +784,7 @@ export default function Settings() {
                     id="store_name"
                     value={formData.store_name}
                     onChange={(e) => setFormData({ ...formData, store_name: e.target.value })}
+                    disabled={!canEditSettings}
                   />
                 </div>
                 <div>
@@ -773,6 +794,7 @@ export default function Settings() {
                     value={formData.cnpj}
                     onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
                     placeholder="00.000.000/0000-00"
+                    disabled={!canEditSettings}
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -781,6 +803,7 @@ export default function Settings() {
                     id="address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    disabled={!canEditSettings}
                   />
                 </div>
                 <div>
@@ -790,62 +813,20 @@ export default function Settings() {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="(00) 0000-0000"
+                    disabled={!canEditSettings}
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <Label htmlFor="logo_url">Logo da Loja</Label>
-                  <div className="space-y-4">
-                    {/* Preview da logo atual */}
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-full overflow-hidden border-4 border-emerald-600 shadow-lg flex-shrink-0">
-                        <img 
-                          src={formData.logo_url} 
-                          alt="Logo atual"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.src = nexusLogo; // Fallback para logo padrão
-                          }}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-700">Logo atual</p>
-                        <p className="text-xs text-slate-500">Esta logo aparecerá no sistema interno</p>
+                  {canEditSettings ? (
+                    <LogoSettings />
+                  ) : (
+                    <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Shield className="w-4 h-4" />
+                        <span className="text-sm">Gerenciamento de logo disponível apenas para administradores</span>
                       </div>
                     </div>
-                    
-                    {/* Input para URL da logo */}
-                    <div>
-                      <Input
-                        id="logo_url"
-                        type="url"
-                        value={formData.logo_url}
-                        onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                        placeholder="https://exemplo.com/sua-logo.jpg"
-                      />
-                      <p className="text-xs text-slate-500 mt-1">
-                        Cole a URL da sua logo personalizada. Recomendamos imagens quadradas (1:1) para melhor resultado.
-                      </p>
-                    </div>
-
-                    {/* Botão para resetar para logo padrão */}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setFormData({ ...formData, logo_url: nexusLogo })}
-                      className="text-slate-600"
-                    >
-                      Usar Logo Padrão do Nexus Commerce
-                    </Button>
-
-                    {/* Nota sobre a logo do login */}
-                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <p className="text-xs text-blue-700">
-                        <strong>Nota:</strong> A tela de login sempre usará a logo oficial do Nexus Commerce. 
-                        Esta configuração afeta apenas o sistema interno após o login.
-                      </p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -853,7 +834,7 @@ export default function Settings() {
 
               <Button 
                 onClick={handleSave} 
-                disabled={saveMutation.isPending} 
+                disabled={saveMutation.isPending || !canEditSettings} 
                 className="bg-[#1B4332] hover:bg-[#2D6A4F] gap-2"
               >
                 <Save className="w-4 h-4" />
@@ -1042,16 +1023,17 @@ export default function Settings() {
 
         {/* Backup & Import/Export */}
         <TabsContent value="backup" className="mt-0 space-y-6">
-          <Card className="border-0 shadow-lg">
-            <CardHeader className="bg-slate-50 border-b">
-              <CardTitle className="flex items-center gap-2">
-                <Download className="w-5 h-5" />
-                Backup e Importação
-              </CardTitle>
-              <CardDescription>
-                Exporte seus dados para backup ou importe dados existentes
-              </CardDescription>
-            </CardHeader>
+          {canEditSettings ? (
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="bg-slate-50 border-b">
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="w-5 h-5" />
+                  Backup e Importação
+                </CardTitle>
+                <CardDescription>
+                  Exporte seus dados para backup ou importe dados existentes
+                </CardDescription>
+              </CardHeader>
             <CardContent className="p-6 space-y-6">
               {/* Export Section */}
               <div>
@@ -1161,6 +1143,21 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+          ) : (
+            <Card className="border-0 shadow-lg">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center space-y-4">
+                    <Shield className="w-16 h-16 text-slate-400 mx-auto" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-700">Acesso Restrito</h3>
+                      <p className="text-slate-500">Backup e importação disponíveis apenas para administradores.</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 

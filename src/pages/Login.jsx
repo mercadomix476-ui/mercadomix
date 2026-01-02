@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Store, Eye, EyeOff } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { SuccessAnimation } from "@/components/ui/feedback";
-import logoImage from "@/assets/nexuslogo.jpg";
+import { SystemLogo } from "@/components/ui/LogoDisplay";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -59,10 +59,9 @@ export default function Login() {
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
           >
-            <img 
-              src={logoImage} 
-              alt="Nexus Commerce" 
-              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover mx-auto shadow-lg border-4 border-emerald-600"
+            <SystemLogo
+              size="xlarge"
+              className="mx-auto"
             />
           </motion.div>
           <motion.h1 

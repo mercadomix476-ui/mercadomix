@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Outlet } from "react-router-dom";
 import { OfflineIndicator } from "@/components/ui/offline-indicator";
+import { SyncProductsIconButton } from "@/components/ui/sync-products-button";
 
 export default function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -28,7 +29,7 @@ export default function MainLayout() {
       )}
       
       <div className="flex-1 lg:ml-64 transition-all duration-300">
-        {/* Header com indicador offline */}
+        {/* Header com indicador offline e botão de sincronização */}
         <header className="bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center lg:px-8">
           <div className="flex items-center gap-4">
             <button
@@ -42,7 +43,10 @@ export default function MainLayout() {
             </button>
           </div>
           
-          <OfflineIndicator />
+          <div className="flex items-center gap-3">
+            <SyncProductsIconButton variant="outline" />
+            <OfflineIndicator />
+          </div>
         </header>
 
         <main 

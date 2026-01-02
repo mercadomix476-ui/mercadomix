@@ -15,10 +15,10 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { api as base44 } from "@/api/supabaseService";
-import nexusLogo from "@/assets/nexuslogo.jpg";
 import { SimpleUserMenu } from "@/components/auth/SimpleUserMenu";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { KeyboardShortcutsHelp } from "@/components/ui/keyboard-shortcuts-help";
+import { StoreLogo } from "@/components/ui/LogoDisplay";
 
 const menuItems = [
   { 
@@ -75,8 +75,8 @@ const menuItems = [
 export function Sidebar({ isOpen, onToggle }) {
   const location = useLocation();
   const { filterMenuItems } = usePermissions();
-
-  // Buscar configurações da loja para obter logo personalizada
+  
+  // Buscar configurações da loja para obter nome da loja
   const { data: settings } = useQuery({
     queryKey: ["settings"],
     queryFn: async () => {
@@ -85,9 +85,9 @@ export function Sidebar({ isOpen, onToggle }) {
     },
   });
 
-  // Usar logo personalizada se disponível, senão usar logo padrão do Nexus
-  const logoToUse = settings?.logo_url || nexusLogo;
-  const storeNameToUse = settings?.store_name || "Nexus Commerce";
+  // LÓGICA SIMPLES: Sempre usa a logo do cliente no sistema interno
+  const logoUrl = "/branding/mercadinho-mix-logo.jpg";
+  const storeNameToUse = settings?.store_name || "Mercadinho Mix";
 
   // Filtrar itens do menu baseado nas permissões do usuário
   const visibleMenuItems = filterMenuItems(menuItems);
@@ -118,17 +118,13 @@ export function Sidebar({ isOpen, onToggle }) {
       >
         {/* Logo Area */}
         <div className="p-4 sm:p-6 border-b border-[#2D6A4F]/30 flex items-center gap-3">
-          <div 
-            className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-4 border-emerald-600 shadow-lg flex-shrink-0"
-            role="img"
-            aria-label={`Logo de ${storeNameToUse}`}
-          >
-            <img 
-              src={logoToUse} 
-              alt={storeNameToUse} 
-              className="w-full h-full object-cover"
-            />
-          </div>
+          <StoreLogo
+            logoUrl={logoUrl}
+            storeName={storeNameToUse}
+            size="large"
+            showBorder={true}
+            borderColor="border-emerald-600"
+          />
           <div className="min-w-0 flex-1">
             <h1 className="font-bold text-base sm:text-lg leading-tight truncate">{storeNameToUse}</h1>
             <p className="text-xs text-white/60 truncate">Sistema Multi-Empresas</p>

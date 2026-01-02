@@ -9,3 +9,6 @@ import { TextEncoder, TextDecoder } from 'util';
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
+
+// Setup IndexedDB mock
+require('./__mocks__/indexedDBMock.js');

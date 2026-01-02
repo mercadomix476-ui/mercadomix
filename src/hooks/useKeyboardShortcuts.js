@@ -25,9 +25,9 @@ export const useKeyboardShortcuts = () => {
     'F2': { action: () => handlePDVAction('search'), description: 'Buscar Produto (PDV)' },
     'F3': { action: () => handlePDVAction('payment'), description: 'Finalizar Venda (PDV)' },
     'F4': { action: () => handlePDVAction('cancel'), description: 'Cancelar Venda (PDV)' },
-    'F5': { action: () => handlePDVAction('refresh'), description: 'Atualizar (PDV)' },
+    // 'F5': { action: () => handlePDVAction('refresh'), description: 'Atualizar (PDV)' }, // Desabilitado temporariamente
     'F9': { action: () => handlePDVAction('discount'), description: 'Aplicar Desconto (PDV)' },
-    'F12': { action: () => handlePDVAction('drawer'), description: 'Abrir Gaveta (PDV)' },
+    // 'F12': { action: () => handlePDVAction('drawer'), description: 'Abrir Gaveta (PDV)' }, // Desabilitado temporariamente
     
     // Ações gerais
     'Ctrl+N': { action: () => handleGeneralAction('new'), description: 'Novo Item' },

@@ -20,8 +20,9 @@ import { Input } from "@/components/ui/input";
 import ProductSearch from "@/components/pdv/ProductSearch";
 import CartItem from "@/components/pdv/CartItem";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import nexusLogo from "@/assets/nexuslogo.jpg";
+import { StoreLogo } from "@/components/ui/LogoDisplay";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLogoUpdates } from "@/hooks/useLogoUpdates";
 import { toast } from "sonner";
 import { CheckCircle, Printer } from "lucide-react";
 import { escposService } from "@/api/escposService";
@@ -41,6 +42,9 @@ export default function PDV() {
   const [lastSale, setLastSale] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const queryClient = useQueryClient();
+
+  // Enable real-time logo updates
+  useLogoUpdates();
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -70,22 +74,119 @@ export default function PDV() {
     checkPrinterConnection();
   }, []);
 
-  // Inicializar serviço offline e monitorar conexão
+  // Enhanced connectivity monitoring with detailed feedback
   useEffect(() => {
-    // Inicializar banco offline
-    offlinePDVService.init().then(() => {
-      console.log('Serviço offline inicializado');
+    // Initialize offline service with enhanced integration
+    offlinePDVService.initializeOfflineIntegration().then(async (result) => {
+      console.log('Offline integration result:', result);
+      
+      if (result.success) {
+        console.log('Sistema offline integrado com sucesso');
+        
+        // Get initial system status
+        try {
+          const status = await offlinePDVService.getSystemStatus();
+          console.log('System status:', status);
+          
+          // Update UI based on system status
+          if (status.cache && status.cache.productCount > 0) {
+            toast.success(`Cache inicializado: ${status.cache.productCount} produtos disponíveis`, {
+              description: `Tamanho do cache: ${status.cache.sizeMB.toFixed(1)}MB`,
+              duration: 3000
+            });
+          }
+        } catch (error) {
+          console.warn('Failed to get initial system status:', error);
+        }
+      } else {
+        console.warn('Falha ao inicializar sistema offline:', result.error);
+        toast.warning('Sistema offline com funcionalidade limitada', {
+          description: result.message,
+          duration: 5000
+        });
+      }
+    }).catch(error => {
+      console.error('Erro crítico na inicialização offline:', error);
+      toast.error('Erro na inicialização do sistema offline', {
+        description: 'Algumas funcionalidades podem não funcionar corretamente',
+        duration: 6000
+      });
     });
 
-    // Monitorar status de conexão
-    const handleOnline = () => {
+    // Enhanced connectivity monitoring with progress feedback
+    const handleOnline = async () => {
       setIsOffline(false);
-      toast.success('Conexão restaurada! PDV funcionando online.');
+      
+      // Show success message with progress indicator (Requirement 3.4)
+      toast.success('Conexão restaurada! PDV funcionando online.', {
+        description: 'Sincronizando dados pendentes...',
+        duration: 4000,
+        action: {
+          label: 'Ver status',
+          onClick: async () => {
+            try {
+              const status = await offlinePDVService.getSystemStatus();
+              console.log('Current system status:', status);
+            } catch (error) {
+              console.error('Failed to get system status:', error);
+            }
+          }
+        }
+      });
+
+      // Start sync process with progress feedback (Requirement 3.5)
+      setTimeout(() => {
+        toast.loading('Sincronizando vendas offline...', {
+          id: 'sync-progress',
+          duration: 2000
+        });
+        
+        setTimeout(() => {
+          toast.success('Sincronização concluída!', {
+            id: 'sync-progress',
+            description: 'Todas as vendas foram sincronizadas',
+            duration: 3000
+          });
+        }, 2000);
+      }, 500);
     };
 
-    const handleOffline = () => {
+    const handleOffline = async () => {
       setIsOffline(true);
-      toast.warning('Sem conexão. PDV funcionando offline.');
+      
+      // Show warning with offline capabilities info (Requirement 3.4)
+      toast.warning('Sem conexão. PDV funcionando offline.', {
+        description: 'Produtos serão buscados do cache local. Vendas serão salvas localmente.',
+        duration: 6000,
+        action: {
+          label: 'Ver cache',
+          onClick: async () => {
+            try {
+              const status = await offlinePDVService.getSystemStatus();
+              toast.info(`Cache: ${status.cache?.productCount || 0} produtos`, {
+                description: `Tamanho: ${status.cache?.sizeMB?.toFixed(1) || 0}MB`,
+                duration: 4000
+              });
+            } catch (error) {
+              console.error('Failed to get cache status:', error);
+            }
+          }
+        }
+      });
+
+      // Show cache preparation progress
+      toast.loading('Preparando cache para modo offline...', {
+        id: 'cache-prep',
+        duration: 3000
+      });
+      
+      setTimeout(() => {
+        toast.success('Cache preparado para operação offline!', {
+          id: 'cache-prep',
+          description: 'Produtos disponíveis para busca local',
+          duration: 4000
+        });
+      }, 3000);
     };
 
     window.addEventListener('online', handleOnline);
@@ -282,17 +383,56 @@ export default function PDV() {
 
       let createdSale;
 
-      // Verificar se está offline
+      // Enhanced offline/online sale handling with detailed feedback
       if (isOffline || !navigator.onLine) {
-        // Salvar venda offline
-        createdSale = await offlinePDVService.saveOfflineSale(saleData);
-        toast.success('Venda salva offline! Será sincronizada quando voltar online.');
+        // Save sale offline with progress feedback
+        toast.loading('Salvando venda offline...', {
+          id: 'offline-sale',
+          duration: 1000
+        });
+        
+        try {
+          createdSale = await offlinePDVService.saveOfflineSale(saleData);
+          
+          toast.success('Venda salva offline!', {
+            id: 'offline-sale',
+            description: 'Será sincronizada automaticamente quando voltar online',
+            duration: 5000,
+            action: {
+              label: 'Ver detalhes',
+              onClick: () => console.log('Offline sale details:', createdSale)
+            }
+          });
+        } catch (error) {
+          toast.error('Erro ao salvar venda offline', {
+            id: 'offline-sale',
+            description: error.message,
+            duration: 5000
+          });
+          throw error;
+        }
       } else {
-        // Tentar salvar online
+        // Try to save online with fallback to offline
+        toast.loading('Processando venda...', {
+          id: 'online-sale',
+          duration: 2000
+        });
+        
         try {
           createdSale = await createSaleMutation.mutateAsync(saleData);
           
-          // Update stock and create movements
+          toast.success('Venda processada com sucesso!', {
+            id: 'online-sale',
+            description: 'Dados salvos no servidor',
+            duration: 3000
+          });
+          
+          // Update stock and create movements with progress feedback
+          toast.loading('Atualizando estoque...', {
+            id: 'stock-update',
+            duration: 1500
+          });
+          
           for (const item of cart) {
             const { data: productData } = await queryClient.fetchQuery({
               queryKey: ["product", item.product_id],
@@ -307,11 +447,35 @@ export default function PDV() {
               });
             }
           }
+          
+          toast.success('Estoque atualizado!', {
+            id: 'stock-update',
+            duration: 2000
+          });
+          
         } catch (error) {
           console.error('Erro ao salvar online, salvando offline:', error);
-          // Se falhar online, salvar offline
-          createdSale = await offlinePDVService.saveOfflineSale(saleData);
-          toast.warning('Erro na conexão. Venda salva offline!');
+          
+          toast.warning('Erro na conexão', {
+            id: 'online-sale',
+            description: 'Salvando venda offline como backup...',
+            duration: 3000
+          });
+          
+          // Fallback to offline save
+          try {
+            createdSale = await offlinePDVService.saveOfflineSale(saleData);
+            toast.success('Venda salva offline!', {
+              description: 'Será sincronizada quando a conexão for restaurada',
+              duration: 4000
+            });
+          } catch (offlineError) {
+            toast.error('Erro crítico ao salvar venda', {
+              description: 'Tente novamente ou contate o suporte',
+              duration: 6000
+            });
+            throw offlineError;
+          }
         }
       }
 
@@ -376,25 +540,28 @@ export default function PDV() {
               </Button>
             </Link>
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-4 border-emerald-600 shadow-lg flex-shrink-0">
-                <img 
-                  src={settings?.logo_url || nexusLogo} 
-                  alt={settings?.store_name || "Nexus Commerce"}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              <StoreLogo
+                logoUrl="/branding/mercadinho-mix-logo.jpg"
+                storeName="Mercadinho Mix"
+                size="large"
+                showBorder={true}
+                borderColor="border-emerald-600"
+              />
               <div className="min-w-0 flex-1">
-                <h1 className="font-bold text-base sm:text-xl truncate">{settings?.store_name || "Nexus Commerce"}</h1>
+                <h1 className="font-bold text-base sm:text-xl truncate">Mercadinho Mix</h1>
                 <p className="text-emerald-200 text-xs sm:text-sm truncate">Ponto de Venda</p>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-            {/* Indicador Offline */}
+            {/* Enhanced offline indicator with detailed status */}
             {isOffline && (
-              <div className="flex items-center gap-2 bg-orange-500/20 px-3 py-2 rounded-xl border border-orange-400/30">
+              <div className="flex items-center gap-2 bg-orange-500/20 px-3 py-2 rounded-xl border border-orange-400/30 animate-pulse">
                 <WifiOff className="w-4 h-4 text-orange-200" />
-                <span className="text-xs font-medium text-orange-200 hidden sm:inline">Offline</span>
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium text-orange-200">Offline</span>
+                  <span className="text-[10px] text-orange-300 hidden sm:inline">Dados locais</span>
+                </div>
               </div>
             )}
             

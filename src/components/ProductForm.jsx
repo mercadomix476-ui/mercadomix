@@ -27,7 +27,7 @@ const unitTypes = [
   { value: "ml", label: "Mililitro (ml)" },
 ];
 
-export function ProductForm({ isOpen, onClose, product }) {
+export function ProductForm({ isOpen, onClose, product, initialData, onSuccess }) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({});
   const [imageUploading, setImageUploading] = useState(false);
@@ -51,9 +51,9 @@ export function ProductForm({ isOpen, onClose, product }) {
       });
     } else {
       setFormData({
-        name: "",
-        barcode: "",
-        sku: "",
+        name: initialData?.name || "",
+        barcode: initialData?.barcode || "",
+        sku: initialData?.sku || "",
         category: "Mercearia",
         unit_type: "unidade",
         cost_price: "",
@@ -65,13 +65,14 @@ export function ProductForm({ isOpen, onClose, product }) {
       });
     }
     setValidationErrors({});
-  }, [product, isOpen]);
+  }, [product, isOpen, initialData]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Product.create(data),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Produto criado com sucesso!");
+      if (onSuccess) onSuccess(data);
       onClose();
     },
     onError: (err) => toast.error(err.message)

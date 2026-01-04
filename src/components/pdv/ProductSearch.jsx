@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api as base44 } from "@/api/supabaseService";
-import { Search, Plus, Barcode, Wifi, WifiOff, Database, Cloud, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import { Search, Plus, Barcode, Wifi, WifiOff, Database, Cloud, AlertTriangle, CheckCircle, Loader2, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,6 +10,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import offlinePDVService from "@/services/offlinePDVService";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ProductForm } from "@/components/ProductForm";
 
 export default function ProductSearch({ onAddProduct, searchQuery, setSearchQuery }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -23,6 +34,12 @@ export default function ProductSearch({ onAddProduct, searchQuery, setSearchQuer
   const [cacheIssues, setCacheIssues] = useState(null);
   const inputRef = useRef(null);
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+  const [pendingBarcode, setPendingBarcode] = useState(null);
+  
+  // Registration flow state
+  const [showRegisterPrompt, setShowRegisterPrompt] = useState(false);
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [unknownBarcode, setUnknownBarcode] = useState(null);
 
   // Monitor online/offline status with enhanced feedback
   useEffect(() => {
@@ -250,17 +267,75 @@ export default function ProductSearch({ onAddProduct, searchQuery, setSearchQuer
 
   // Determine which results to use - only show results when there's a search query
   const shouldShowResults = searchQuery && searchQuery.trim() !== '';
-  const filteredProducts = shouldShowResults ? (
+  
+  const rawProducts = shouldShowResults ? (
     isOnline 
       ? (productsData?.data ?? [])
       : offlineResults
   ) : [];
+
+  // Sort products to prioritize exact matches (Barcode > SKU > Name)
+  const filteredProducts = React.useMemo(() => {
+    if (!rawProducts.length || !searchQuery) return rawProducts;
+    
+    const query = searchQuery.toLowerCase().trim();
+    
+    return [...rawProducts].sort((a, b) => {
+      const aBarcode = a.barcode?.toLowerCase() || '';
+      const bBarcode = b.barcode?.toLowerCase() || '';
+      const aSku = a.sku?.toLowerCase() || '';
+      const bSku = b.sku?.toLowerCase() || '';
+      
+      // 1. Exact Barcode Match (Highest Priority)
+      if (aBarcode === query && bBarcode !== query) return -1;
+      if (bBarcode === query && aBarcode !== query) return 1;
+      
+      // 2. Exact SKU Match
+      if (aSku === query && bSku !== query) return -1;
+      if (bSku === query && aSku !== query) return 1;
+      
+      // 3. Keep original order (usually alphabetical by name from backend)
+      return 0;
+    });
+  }, [rawProducts, searchQuery]);
 
   const isLoading = shouldShowResults && (isOnline ? isOnlineLoading : isOfflineSearching);
 
   useEffect(() => {
     setSelectedIndex(0);
   }, [filteredProducts]);
+
+  // Handle auto-add for scanner (pendingBarcode)
+  useEffect(() => {
+    if (pendingBarcode && !isLoading) {
+      // Look for exact match first
+      const match = filteredProducts.find(p => 
+        p.barcode?.toLowerCase() === pendingBarcode || 
+        p.sku?.toLowerCase() === pendingBarcode
+      );
+
+      if (match) {
+        handleAdd(match);
+        toast.success("Produto encontrado!");
+      } else {
+        // If it looks like a barcode (numeric), don't auto-select random stuff
+        const isNumeric = /^\d+$/.test(pendingBarcode);
+        
+        if (!isNumeric && filteredProducts.length > 0) {
+           // If it's a text search, select the first one
+           handleAdd(filteredProducts[0]);
+        } else {
+           if (isNumeric) {
+             setUnknownBarcode(pendingBarcode);
+             setShowRegisterPrompt(true);
+           } else {
+             toast.error("Produto não encontrado.");
+           }
+        }
+      }
+      setPendingBarcode(null);
+    }
+  }, [filteredProducts, isLoading, pendingBarcode]);
 
   // Handle keyboard navigation
   const handleKeyDown = (e) => {
@@ -272,9 +347,35 @@ export default function ProductSearch({ onAddProduct, searchQuery, setSearchQuer
       setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (filteredProducts.length > 0) {
-        handleAdd(filteredProducts[selectedIndex]);
+      
+      const query = searchQuery.trim();
+      if (!query) return;
+
+      // 1. Check for immediate exact match in current results
+      const exactMatch = filteredProducts.find(p => 
+        p.barcode?.toLowerCase() === query.toLowerCase() || 
+        p.sku?.toLowerCase() === query.toLowerCase()
+      );
+
+      if (exactMatch) {
+        handleAdd(exactMatch);
+        return;
       }
+
+      // 2. If debouncedSearch is stable (matches query) but no exact match found:
+      // We fall back to standard selection (e.g. selectedIndex)
+      if (debouncedSearch === query) {
+         if (filteredProducts.length > 0) {
+           handleAdd(filteredProducts[selectedIndex]);
+         }
+         return;
+      }
+
+      // 3. Fast typing / Scanner detected (Input != Debounced)
+      // Force update and wait for results
+      setDebouncedSearch(query);
+      setPendingBarcode(query.toLowerCase());
+      toast.info("Buscando produto...");
     } else if (e.key === "Escape") {
       setSearchQuery("");
     }
@@ -700,6 +801,38 @@ export default function ProductSearch({ onAddProduct, searchQuery, setSearchQuer
           )}
         </Card>
       )}
+
+      <AlertDialog open={showRegisterPrompt} onOpenChange={setShowRegisterPrompt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Produto não cadastrado</AlertDialogTitle>
+            <AlertDialogDescription>
+              O código de barras <strong>{unknownBarcode}</strong> não foi encontrado no sistema. Deseja cadastrá-lo agora?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setUnknownBarcode(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setShowRegisterPrompt(false); setShowProductForm(true); }}>
+              Cadastrar Produto
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <ProductForm 
+        isOpen={showProductForm} 
+        onClose={() => setShowProductForm(false)} 
+        initialData={{ barcode: unknownBarcode }}
+        onSuccess={(newProduct) => {
+          // Add to cart immediately if we have the product data
+          if (newProduct) {
+             // Need to format it as the search result expects, if necessary
+             // The API returns the full product, so it should be compatible
+             handleAdd(newProduct);
+             toast.success("Produto cadastrado e adicionado à venda!");
+          }
+        }}
+      />
     </div>
   );
 }

@@ -10,7 +10,7 @@ create table if not exists products (
   unit_type text,
   cost_price numeric,
   sale_price numeric,
-  stock_quantity integer default 0,
+  stock_quantity numeric default 0,
   min_stock integer default 5,
   is_active boolean default true,
   image_url text,
@@ -36,9 +36,12 @@ create table if not exists stock_movements (
   product_id bigint references products(id),
   product_name text,
   movement_type text,
-  quantity integer,
+  quantity numeric,
+  previous_stock numeric,
+  new_stock numeric,
   reason text,
   reference text,
+  location text,
   created_date timestamptz default now()
 );
 
